@@ -1,0 +1,275 @@
+<section class="hero">
+  <div>
+    <p class="eyebrow">Knowledge operations</p>
+    <h1>Build a policy corpus you can explain.</h1>
+    <p class="lede">
+      Ingest governed documents, inspect immutable versions, search vector embeddings,
+      and see exactly which chunks support retrieval.
+    </p>
+  </div>
+  <button class="secondary" type="button" (click)="refreshSelection()">Refresh data</button>
+</section>
+
+@if (error()) {
+  <div class="notice error" role="alert">
+    <span>{{ error() }}</span>
+    <button type="button" aria-label="Dismiss error" (click)="error.set(null)">Dismiss</button>
+  </div>
+}
+
+@if (success()) {
+  <div class="notice success" role="status">{{ success() }}</div>
+}
+
+<section class="metrics" aria-label="Corpus summary">
+  <article><span>Documents</span><strong>{{ documents().length }}</strong></article>
+  <article><span>Visible versions</span><strong>{{ versions().length }}</strong></article>
+  <article><span>Selected chunks</span><strong>{{ totalChunks() }}</strong></article>
+  <article><span>Embeddings pending</span><strong>{{ pendingEmbeddings() }}</strong></article>
+  <article><span>Embeddings ready</span><strong>{{ completedEmbeddings() }}</strong></article>
+</section>
+
+<div class="workspace">
+  <section class="panel upload-panel">
+    <div class="panel-heading">
+      <div>
+        <p class="eyebrow">Ingestion</p>
+        <h2>Add source material</h2>
+      </div>
+      <span class="step">01</span>
+    </div>
+
+    <form [formGroup]="uploadForm" (ngSubmit)="upload()">
+      <label>
+        Policy title
+        <input formControlName="title" placeholder="Production Data Access Policy" />
+      </label>
+
+      <label class="file-drop">
+        <input type="file" accept=".pdf,.txt,.md,.markdown" (change)="onFileSelected($event)" />
+        <span>{{ selectedFile()?.name ?? 'Choose PDF, TXT, or Markdown' }}</span>
+        <small>Maximum upload size: 25 MB</small>
+      </label>
+
+      <div class="form-grid">
+        <label>
+          Chunking strategy
+          <select formControlName="strategy">
+            <option value="SLIDING_WINDOW">Sliding window</option>
+            <option value="FIXED_SIZE">Fixed size</option>
+          </select>
+        </label>
+        <label>
+          Chunk size
+          <input type="number" formControlName="chunkSize" />
+        </label>
+        <label>
+          Overlap
+          <input
+            type="number"
+            formControlName="overlap"
+            [disabled]="uploadForm.controls.strategy.value === 'FIXED_SIZE'"
+          />
+        </label>
+      </div>
+
+      <button class="primary" type="submit" [disabled]="uploading()">
+        {{ uploading() ? 'Ingesting...' : 'Create document' }}
+      </button>
+    </form>
+  </section>
+
+  <section class="panel explorer">
+    <div class="panel-heading">
+      <div>
+        <p class="eyebrow">Corpus explorer</p>
+        <h2>Documents and versions</h2>
+      </div>
+      <span class="step">02</span>
+    </div>
+
+    @if (loading()) {
+      <p class="empty">Loading the corpus...</p>
+    } @else if (documents().length === 0) {
+      <p class="empty">No documents yet. Ingest the first policy to begin.</p>
+    } @else {
+      <div class="explorer-grid">
+        <div class="list" aria-label="Documents">
+          @for (document of documents(); track document.id) {
+            <button
+              type="button"
+              [class.selected]="selectedDocument()?.id === document.id"
+              (click)="selectDocument(document)"
+            >
+              <strong>{{ document.title }}</strong>
+              <small>Updated {{ document.updatedAt | date: 'medium' }}</small>
+            </button>
+          }
+        </div>
+
+        <div class="versions">
+          @for (version of versions(); track version.id) {
+            <button
+              type="button"
+              [class.selected]="selectedVersion()?.id === version.id"
+              (click)="selectVersion(version)"
+            >
+              <span>v{{ version.version }}</span>
+              <strong>{{ version.originalFilename }}</strong>
+              <small>{{ version.chunkingStrategy }} - {{ version.chunkSize }} chars</small>
+            </button>
+          }
+        </div>
+      </div>
+    }
+  </section>
+</div>
+
+<section class="panel retrieval">
+  <div class="panel-heading">
+    <div>
+      <p class="eyebrow">Vector retrieval</p>
+      <h2>Cosine similarity search</h2>
+    </div>
+    <span class="step">03</span>
+  </div>
+
+  <form class="search-form" [formGroup]="searchForm" (ngSubmit)="search()">
+    <label>
+      Question
+      <input formControlName="query" placeholder="Can contractors access production data?" />
+    </label>
+    <label>
+      Top K
+      <input type="number" formControlName="topK" />
+    </label>
+    <button class="primary" type="submit" [disabled]="searching()">
+      {{ searching() ? 'Searching...' : 'Search vectors' }}
+    </button>
+  </form>
+
+  @if (searchResult(); as result) {
+    <div class="retrieval-meta">
+      <span>{{ result.returnedChunks }} of {{ result.requestedTopK }} chunks returned</span>
+      <span>{{ result.embeddingModel }} / {{ result.embeddingDimension }} dimensions</span>
+    </div>
+
+    <div class="retrieval-list">
+      @for (chunk of result.chunks; track chunk.chunkId) {
+        <article>
+          <header>
+            <strong>{{ similarityPercent(chunk.similarityScore) }}</strong>
+            <span>{{ chunk.documentTitle }} v{{ chunk.version }} / chunk {{ chunk.chunkIndex }}</span>
+          </header>
+          <p>{{ chunk.excerpt }}</p>
+        </article>
+      }
+    </div>
+  }
+</section>
+
+<section class="panel advisor">
+  <div class="panel-heading">
+    <div>
+      <p class="eyebrow">Advisor</p>
+      <h2>Answer with attribution</h2>
+    </div>
+    <span class="step">04</span>
+  </div>
+
+  <form class="advisor-form" [formGroup]="advisorForm" (ngSubmit)="askAdvisor()">
+    <label>
+      Question
+      <input formControlName="question" placeholder="Can contractors access production data?" />
+    </label>
+    <button class="primary" type="submit" [disabled]="asking()">
+      {{ asking() ? 'Thinking...' : 'Ask advisor' }}
+    </button>
+  </form>
+
+  @if (advisorAnswer(); as answer) {
+    <article class="answer-card">
+      <header>
+        <strong>{{ answer.qualityPrediction.label }}</strong>
+        <span>{{ similarityPercent(answer.qualityPrediction.probability) }} / {{ answer.qualityPrediction.modelVersion }}</span>
+      </header>
+      <p>{{ answer.answer }}</p>
+      <div class="retrieval-meta">
+        <span>Trace {{ answer.traceId }}</span>
+        <span>{{ answer.contextMetrics.usedChunks }} used</span>
+        <span>{{ answer.contextMetrics.discardedChunks }} discarded</span>
+        <span>{{ answer.contextMetrics.estimatedTokens }} estimated tokens</span>
+      </div>
+      <div class="retrieval-list">
+        @for (source of answer.sources; track source.chunkId) {
+          <article>
+            <header>
+              <strong>{{ similarityPercent(source.similarityScore) }}</strong>
+              <span>{{ source.documentTitle }} v{{ source.version }} / chunk {{ source.chunkIndex }}</span>
+            </header>
+            <p>{{ source.excerpt }}</p>
+          </article>
+        }
+      </div>
+    </article>
+  }
+</section>
+
+<section class="panel traces">
+  <div class="panel-heading">
+    <div>
+      <p class="eyebrow">Retrieval explorer</p>
+      <h2>Recent traces</h2>
+    </div>
+    <button class="secondary" type="button" (click)="loadTraces()">Refresh traces</button>
+  </div>
+
+  @if (traces().length === 0) {
+    <p class="empty">No advisor traces yet.</p>
+  } @else {
+    <div class="trace-list">
+      @for (trace of traces(); track trace.id) {
+        <article>
+          <header>
+            <strong>{{ trace.question }}</strong>
+            <span>{{ trace.createdAt | date: 'medium' }}</span>
+          </header>
+          <p>{{ trace.answer }}</p>
+          <div class="retrieval-meta">
+            <span>{{ trace.usedChunks }} used / {{ trace.retrievedChunks }} retrieved</span>
+            <span>top {{ trace.topSimilarityScore === null ? 'n/a' : similarityPercent(trace.topSimilarityScore) }}</span>
+            <span>{{ trace.mlLabel ?? 'UNKNOWN' }}</span>
+          </div>
+        </article>
+      }
+    </div>
+  }
+</section>
+
+<section class="panel chunks">
+  <div class="panel-heading">
+    <div>
+      <p class="eyebrow">Chunk inspection</p>
+      <h2>{{ selectedDocument()?.title ?? 'Select a document' }}</h2>
+    </div>
+    <div class="chunk-count">{{ activeChunks() }} active</div>
+  </div>
+
+  @if (chunks().length === 0) {
+    <p class="empty">Select a version to inspect its generated chunks.</p>
+  } @else {
+    <div class="chunk-list">
+      @for (chunk of chunks(); track chunk.id) {
+        <article>
+          <header>
+            <span>Chunk {{ chunk.chunkIndex }}</span>
+            <span class="status" [class.pending]="chunk.embeddingStatus === 'PENDING'">
+              {{ chunk.embeddingStatus }}
+            </span>
+          </header>
+          <p>{{ chunk.chunkText }}</p>
+        </article>
+      }
+    </div>
+  }
+</section>
