@@ -52,12 +52,16 @@ explaining how RAG systems work beyond a chat box.
 - lazy feature routing
 - responsive enterprise dashboard layout
 - document upload with multipart forms
+- tenant and metadata capture for governed retrieval
 - chunking controls
 - document and version explorer
 - chunk inspection
 - vector search UI
 - advisor interaction UI
-- retrieval trace display
+- hybrid score display, including vector, keyword, and combined scores
+- retrieval trace detail for retrieved, used, and discarded chunks
+- feedback buttons for good/bad retrieval labels
+- golden-question starter panel for evaluation walkthroughs
 - Nginx-based production container
 - API proxying from `/api` to the backend container
 
@@ -71,7 +75,9 @@ explaining how RAG systems work beyond a chat box.
 5. Inspect generated chunks
 6. Run vector search
 7. Ask the advisor a policy question
-8. Review answer, sources, and retrieval quality
+8. Review answer, sources, retrieval quality, and verification status
+9. Inspect trace detail to see retrieved, used, and discarded chunks
+10. Submit good/bad feedback for future model training
 ```
 
 Suggested test question:

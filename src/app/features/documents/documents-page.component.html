@@ -45,6 +45,32 @@
         <input formControlName="title" placeholder="Production Data Access Policy" />
       </label>
 
+      <div class="form-grid">
+        <label>
+          Tenant
+          <input formControlName="tenantId" placeholder="default" />
+        </label>
+        <label>
+          Department
+          <input formControlName="department" placeholder="Security" />
+        </label>
+        <label>
+          Region
+          <input formControlName="region" placeholder="Global" />
+        </label>
+      </div>
+
+      <div class="form-grid">
+        <label>
+          Document type
+          <input formControlName="documentType" placeholder="Policy" />
+        </label>
+        <label>
+          Classification
+          <input formControlName="classification" placeholder="Internal" />
+        </label>
+      </div>
+
       <label class="file-drop">
         <input type="file" accept=".pdf,.txt,.md,.markdown" (change)="onFileSelected($event)" />
         <span>{{ selectedFile()?.name ?? 'Choose PDF, TXT, or Markdown' }}</span>
@@ -102,6 +128,7 @@
               (click)="selectDocument(document)"
             >
               <strong>{{ document.title }}</strong>
+              <small>{{ document.tenantId }} / {{ document.department ?? 'Any department' }}</small>
               <small>Updated {{ document.updatedAt | date: 'medium' }}</small>
             </button>
           }
@@ -152,15 +179,22 @@
     <div class="retrieval-meta">
       <span>{{ result.returnedChunks }} of {{ result.requestedTopK }} chunks returned</span>
       <span>{{ result.embeddingModel }} / {{ result.embeddingDimension }} dimensions</span>
+      <span>corpus {{ result.corpusVersion }}</span>
+      <span>{{ result.cacheHit ? 'cache hit' : 'fresh search' }}</span>
     </div>
 
     <div class="retrieval-list">
       @for (chunk of result.chunks; track chunk.chunkId) {
         <article>
           <header>
-            <strong>{{ similarityPercent(chunk.similarityScore) }}</strong>
+            <strong>{{ similarityPercent(chunk.combinedScore) }} combined</strong>
             <span>{{ chunk.documentTitle }} v{{ chunk.version }} / chunk {{ chunk.chunkIndex }}</span>
           </header>
+          <div class="retrieval-meta">
+            <span>vector {{ similarityPercent(chunk.similarityScore) }}</span>
+            <span>keyword {{ chunk.keywordScore | number: '1.2-4' }}</span>
+            <span>{{ chunk.retrievalStrategy }}</span>
+          </div>
           <p>{{ chunk.excerpt }}</p>
         </article>
       }
@@ -199,6 +233,11 @@
         <span>{{ answer.contextMetrics.usedChunks }} used</span>
         <span>{{ answer.contextMetrics.discardedChunks }} discarded</span>
         <span>{{ answer.contextMetrics.estimatedTokens }} estimated tokens</span>
+      </div>
+      <div class="retrieval-meta">
+        <button class="secondary" type="button" (click)="submitFeedback(answer.traceId, 'THUMBS_UP')">Good retrieval</button>
+        <button class="secondary" type="button" (click)="submitFeedback(answer.traceId, 'THUMBS_DOWN')">Bad retrieval</button>
+        <button class="secondary" type="button" (click)="loadTraceDetail(answer.traceId)">Inspect trace</button>
       </div>
       <div class="retrieval-list">
         @for (source of answer.sources; track source.chunkId) {
@@ -239,11 +278,80 @@
             <span>{{ trace.usedChunks }} used / {{ trace.retrievedChunks }} retrieved</span>
             <span>top {{ trace.topSimilarityScore === null ? 'n/a' : similarityPercent(trace.topSimilarityScore) }}</span>
             <span>{{ trace.mlLabel ?? 'UNKNOWN' }}</span>
+            <span>{{ trace.answerVerified ? 'verified' : 'verification warning' }}</span>
+            <span>{{ trace.totalLatencyMs }} ms</span>
+          </div>
+          <div class="retrieval-meta">
+            <button class="secondary" type="button" (click)="loadTraceDetail(trace.id)">Inspect retrieved chunks</button>
+            <button class="secondary" type="button" (click)="submitFeedback(trace.id, 'THUMBS_UP')">Good</button>
+            <button class="secondary" type="button" (click)="submitFeedback(trace.id, 'THUMBS_DOWN')">Bad</button>
           </div>
         </article>
       }
     </div>
   }
+</section>
+
+@if (selectedTrace(); as traceDetail) {
+  <section class="panel traces">
+    <div class="panel-heading">
+      <div>
+        <p class="eyebrow">Trace detail</p>
+        <h2>Retrieved, used, and discarded chunks</h2>
+      </div>
+      <span class="step">{{ traceDetail.sources.length }}</span>
+    </div>
+
+    <div class="retrieval-meta">
+      <span>{{ traceDetail.summary.retrievalStrategy }}</span>
+      <span>plan {{ traceDetail.summary.queryPlan ?? 'n/a' }}</span>
+      <span>{{ traceDetail.summary.answerVerificationReason ?? 'not verified' }}</span>
+    </div>
+
+    <div class="retrieval-list">
+      @for (source of traceDetail.sources; track source.id) {
+        <article>
+          <header>
+            <strong>{{ source.usedInContext ? 'USED' : source.discardReason }}</strong>
+            <span>{{ source.documentTitle }} v{{ source.versionNumber }} / chunk {{ source.chunkIndex }}</span>
+          </header>
+          <div class="retrieval-meta">
+            <span>rank {{ source.sourceRank }}</span>
+            <span>context {{ source.contextRank ?? 'n/a' }}</span>
+            <span>combined {{ similarityPercent(source.combinedScore) }}</span>
+            <span>vector {{ similarityPercent(source.similarityScore) }}</span>
+            <span>{{ source.retrievalStrategy }}</span>
+          </div>
+          <p>{{ source.excerpt }}</p>
+        </article>
+      }
+    </div>
+  </section>
+}
+
+<section class="panel traces">
+  <div class="panel-heading">
+    <div>
+      <p class="eyebrow">Evaluation starter</p>
+      <h2>Golden questions</h2>
+    </div>
+  </div>
+  <div class="trace-list">
+    @for (question of goldenQuestions(); track question.id) {
+      <article>
+        <header>
+          <strong>{{ question.question }}</strong>
+          <button class="secondary" type="button" (click)="useGoldenQuestion(question.question)">Use question</button>
+        </header>
+        <p>{{ question.expectedAnswerHint }}</p>
+        <div class="retrieval-meta">
+          @for (hint of question.expectedSourceHints; track hint) {
+            <span>{{ hint }}</span>
+          }
+        </div>
+      </article>
+    }
+  </div>
 </section>
 
 <section class="panel chunks">

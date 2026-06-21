@@ -1,4 +1,4 @@
-import { DatePipe } from '@angular/common';
+import { DatePipe, DecimalPipe } from '@angular/common';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -18,13 +18,15 @@ import {
   DocumentSummary,
   DocumentVersion,
   AdvisorAnswer,
+  GoldenQuestion,
+  RetrievalTraceDetail,
   RetrievalTraceSummary,
   RetrievalSearchResponse
 } from './documents.models';
 
 @Component({
   selector: 'app-documents-page',
-  imports: [DatePipe, ReactiveFormsModule],
+  imports: [DatePipe, DecimalPipe, ReactiveFormsModule],
   templateUrl: './documents-page.component.html',
   styleUrl: './documents-page.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush
@@ -47,6 +49,8 @@ export class DocumentsPageComponent implements OnInit {
   readonly searchResult = signal<RetrievalSearchResponse | null>(null);
   readonly advisorAnswer = signal<AdvisorAnswer | null>(null);
   readonly traces = signal<RetrievalTraceSummary[]>([]);
+  readonly selectedTrace = signal<RetrievalTraceDetail | null>(null);
+  readonly goldenQuestions = signal<GoldenQuestion[]>([]);
 
   readonly totalChunks = computed(() => this.chunks().length);
   readonly activeChunks = computed(() => this.chunks().filter((chunk) => chunk.active).length);
@@ -62,6 +66,14 @@ export class DocumentsPageComponent implements OnInit {
       nonNullable: true,
       validators: [Validators.required, Validators.maxLength(300)]
     }),
+    tenantId: new FormControl('default', {
+      nonNullable: true,
+      validators: [Validators.required, Validators.maxLength(80)]
+    }),
+    department: new FormControl('', { nonNullable: true, validators: [Validators.maxLength(120)] }),
+    region: new FormControl('', { nonNullable: true, validators: [Validators.maxLength(120)] }),
+    documentType: new FormControl('', { nonNullable: true, validators: [Validators.maxLength(120)] }),
+    classification: new FormControl('', { nonNullable: true, validators: [Validators.maxLength(120)] }),
     strategy: new FormControl<ChunkingStrategy>('SLIDING_WINDOW', {
       nonNullable: true,
       validators: [Validators.required]
@@ -97,6 +109,7 @@ export class DocumentsPageComponent implements OnInit {
   ngOnInit(): void {
     this.loadDocuments();
     this.loadTraces();
+    this.loadGoldenQuestions();
   }
 
   loadDocuments(): void {
@@ -241,6 +254,32 @@ export class DocumentsPageComponent implements OnInit {
     this.api.getTraces().subscribe({
       next: (traces) => this.traces.set(traces),
       error: () => this.traces.set([])
+    });
+  }
+
+  loadTraceDetail(traceId: string): void {
+    this.api.getTraceDetail(traceId).subscribe({
+      next: (detail) => this.selectedTrace.set(detail),
+      error: (error: ApiError) => this.error.set(error.message)
+    });
+  }
+
+  submitFeedback(traceId: string, rating: 'THUMBS_UP' | 'THUMBS_DOWN'): void {
+    this.api.submitFeedback(traceId, rating).subscribe({
+      next: () => this.success.set(`Feedback saved for trace ${traceId}.`),
+      error: (error: ApiError) => this.error.set(error.message)
+    });
+  }
+
+  useGoldenQuestion(question: string): void {
+    this.searchForm.controls.query.setValue(question);
+    this.advisorForm.controls.question.setValue(question);
+  }
+
+  private loadGoldenQuestions(): void {
+    this.api.getGoldenQuestions().subscribe({
+      next: (questions) => this.goldenQuestions.set(questions),
+      error: () => this.goldenQuestions.set([])
     });
   }
 

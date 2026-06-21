@@ -4,6 +4,11 @@ export type EmbeddingStatus = 'PENDING' | 'COMPLETED' | 'FAILED';
 export interface DocumentSummary {
   id: string;
   title: string;
+  tenantId: string;
+  department: string | null;
+  region: string | null;
+  documentType: string | null;
+  classification: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -44,6 +49,11 @@ export interface IngestionResult {
 export interface UploadDocument {
   title: string;
   file: File;
+  tenantId: string;
+  department: string;
+  region: string;
+  documentType: string;
+  classification: string;
   strategy: ChunkingStrategy;
   chunkSize: number;
   overlap: number;
@@ -58,6 +68,9 @@ export interface RetrievedChunk {
   chunkIndex: number;
   chunkText: string;
   similarityScore: number;
+  keywordScore: number;
+  combinedScore: number;
+  retrievalStrategy: string;
   excerpt: string;
 }
 
@@ -67,6 +80,8 @@ export interface RetrievalSearchResponse {
   returnedChunks: number;
   embeddingModel: string;
   embeddingDimension: number;
+  corpusVersion: number;
+  cacheHit: boolean;
   chunks: RetrievedChunk[];
 }
 
@@ -76,6 +91,11 @@ export interface ContextMetrics {
   discardedChunks: number;
   estimatedTokens: number;
   documentDiversity: number;
+  duplicateDiscardedChunks: number;
+  nearDuplicateDiscardedChunks: number;
+  documentQuotaDiscardedChunks: number;
+  tokenBudgetDiscardedChunks: number;
+  maxChunkDiscardedChunks: number;
 }
 
 export interface RetrievalQualityPrediction {
@@ -108,5 +128,49 @@ export interface RetrievalTraceSummary {
   documentDiversity: number;
   mlLabel: string | null;
   mlProbability: number | null;
+  corpusVersion: number;
+  cacheHit: boolean;
+  retrievalLatencyMs: number;
+  contextBuildLatencyMs: number;
+  llmLatencyMs: number;
+  mlLatencyMs: number;
+  totalLatencyMs: number;
+  answerGenerator: string;
+  retrievalStrategy: string;
+  queryPlan: string | null;
+  answerVerified: boolean;
+  answerVerificationReason: string | null;
   createdAt: string;
+}
+
+export interface RetrievalTraceSourceSummary {
+  id: string;
+  documentId: string;
+  documentTitle: string;
+  versionId: string;
+  versionNumber: number;
+  chunkId: string;
+  chunkIndex: number;
+  similarityScore: number;
+  excerpt: string;
+  usedInContext: boolean;
+  sourceRank: number;
+  contextRank: number | null;
+  discardReason: string | null;
+  tokenEstimate: number;
+  keywordScore: number;
+  combinedScore: number;
+  retrievalStrategy: string;
+}
+
+export interface RetrievalTraceDetail {
+  summary: RetrievalTraceSummary;
+  sources: RetrievalTraceSourceSummary[];
+}
+
+export interface GoldenQuestion {
+  id: string;
+  question: string;
+  expectedSourceHints: string[];
+  expectedAnswerHint: string;
 }

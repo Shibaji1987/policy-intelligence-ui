@@ -9,7 +9,9 @@ import {
   DocumentVersion,
   IngestionResult,
   AdvisorAnswer,
+  GoldenQuestion,
   RetrievalSearchResponse,
+  RetrievalTraceDetail,
   RetrievalTraceSummary,
   UploadDocument
 } from './documents.models';
@@ -21,6 +23,7 @@ export class DocumentsApiService {
   private readonly retrievalEndpoint = `${API_BASE_URL}/retrieval`;
   private readonly advisorEndpoint = `${API_BASE_URL}/advisor`;
   private readonly tracesEndpoint = `${API_BASE_URL}/retrieval-traces`;
+  private readonly evaluationsEndpoint = `${API_BASE_URL}/evaluations`;
 
   getDocuments(): Observable<DocumentSummary[]> {
     return this.http.get<DocumentSummary[]>(this.endpoint);
@@ -40,6 +43,11 @@ export class DocumentsApiService {
     formData.append('file', payload.file);
 
     const params = new HttpParams()
+      .set('tenantId', payload.tenantId)
+      .set('department', payload.department)
+      .set('region', payload.region)
+      .set('documentType', payload.documentType)
+      .set('classification', payload.classification)
       .set('strategy', payload.strategy)
       .set('chunkSize', payload.chunkSize)
       .set('overlap', payload.overlap);
@@ -60,5 +68,17 @@ export class DocumentsApiService {
     return this.http.get<RetrievalTraceSummary[]>(this.tracesEndpoint, {
       params: new HttpParams().set('limit', limit)
     });
+  }
+
+  getTraceDetail(traceId: string): Observable<RetrievalTraceDetail> {
+    return this.http.get<RetrievalTraceDetail>(`${this.tracesEndpoint}/${traceId}`);
+  }
+
+  submitFeedback(traceId: string, rating: 'THUMBS_UP' | 'THUMBS_DOWN', comment = ''): Observable<{ feedbackId: string }> {
+    return this.http.post<{ feedbackId: string }>(`${this.tracesEndpoint}/${traceId}/feedback`, { rating, comment });
+  }
+
+  getGoldenQuestions(): Observable<GoldenQuestion[]> {
+    return this.http.get<GoldenQuestion[]>(`${this.evaluationsEndpoint}/golden-questions`);
   }
 }
