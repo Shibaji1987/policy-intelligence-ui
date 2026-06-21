@@ -13,12 +13,14 @@ import { finalize, forkJoin } from 'rxjs';
 import { ApiError } from '../../core/http/api-error.interceptor';
 import { DocumentsApiService } from './documents-api.service';
 import {
+  AdvisorEvent,
   ChunkingStrategy,
   DocumentChunk,
   DocumentSummary,
   DocumentVersion,
   AdvisorAnswer,
   GoldenQuestion,
+  GoldenQuestionResult,
   RetrievalTraceDetail,
   RetrievalTraceSummary,
   RetrievalSearchResponse
@@ -43,6 +45,7 @@ export class DocumentsPageComponent implements OnInit {
   readonly uploading = signal(false);
   readonly searching = signal(false);
   readonly asking = signal(false);
+  readonly evaluating = signal(false);
   readonly error = signal<string | null>(null);
   readonly success = signal<string | null>(null);
   readonly selectedFile = signal<File | null>(null);
@@ -51,6 +54,8 @@ export class DocumentsPageComponent implements OnInit {
   readonly traces = signal<RetrievalTraceSummary[]>([]);
   readonly selectedTrace = signal<RetrievalTraceDetail | null>(null);
   readonly goldenQuestions = signal<GoldenQuestion[]>([]);
+  readonly goldenQuestionResults = signal<GoldenQuestionResult[]>([]);
+  readonly advisorEvents = signal<AdvisorEvent[]>([]);
 
   readonly totalChunks = computed(() => this.chunks().length);
   readonly activeChunks = computed(() => this.chunks().filter((chunk) => chunk.active).length);
@@ -238,15 +243,21 @@ export class DocumentsPageComponent implements OnInit {
     }
     this.asking.set(true);
     this.error.set(null);
+    this.advisorEvents.set([]);
     this.api
-      .askAdvisor(this.advisorForm.getRawValue().question)
+      .streamAdvisor(this.advisorForm.getRawValue().question)
       .pipe(finalize(() => this.asking.set(false)))
       .subscribe({
-        next: (answer) => {
-          this.advisorAnswer.set(answer);
+        next: (message) => {
+          if (message.type === 'event') {
+            this.advisorEvents.update((events) => [...events, message.event]);
+            return;
+          }
+          this.advisorAnswer.set(message.answer);
+          this.loadTraceDetail(message.answer.traceId);
           this.loadTraces();
         },
-        error: (error: ApiError) => this.error.set(error.message)
+        error: () => this.error.set('Advisor stream failed. Check API logs for details.')
       });
   }
 
@@ -274,6 +285,21 @@ export class DocumentsPageComponent implements OnInit {
   useGoldenQuestion(question: string): void {
     this.searchForm.controls.query.setValue(question);
     this.advisorForm.controls.question.setValue(question);
+  }
+
+  runGoldenQuestions(): void {
+    this.evaluating.set(true);
+    this.error.set(null);
+    this.api
+      .runGoldenQuestions()
+      .pipe(finalize(() => this.evaluating.set(false)))
+      .subscribe({
+        next: (results) => {
+          this.goldenQuestionResults.set(results);
+          this.loadTraces();
+        },
+        error: (error: ApiError) => this.error.set(error.message)
+      });
   }
 
   private loadGoldenQuestions(): void {

@@ -188,7 +188,7 @@
         <article>
           <header>
             <strong>{{ similarityPercent(chunk.combinedScore) }} combined</strong>
-            <span>{{ chunk.documentTitle }} v{{ chunk.version }} / chunk {{ chunk.chunkIndex }}</span>
+            <span>{{ chunk.documentTitle }} v{{ chunk.version }} / {{ chunk.parentSectionTitle }} / chunk {{ chunk.chunkIndex }}</span>
           </header>
           <div class="retrieval-meta">
             <span>vector {{ similarityPercent(chunk.similarityScore) }}</span>
@@ -221,6 +221,22 @@
     </button>
   </form>
 
+  @if (advisorEvents().length > 0) {
+    <div class="trace-list">
+      <article>
+        <header>
+          <strong>Live execution trace</strong>
+          <span>{{ advisorEvents().length }} events</span>
+        </header>
+        <div class="retrieval-meta">
+          @for (event of advisorEvents(); track event.stage + event.occurredAt) {
+            <span>{{ event.stage }}: {{ event.message }}</span>
+          }
+        </div>
+      </article>
+    </div>
+  }
+
   @if (advisorAnswer(); as answer) {
     <article class="answer-card">
       <header>
@@ -244,7 +260,7 @@
           <article>
             <header>
               <strong>{{ similarityPercent(source.similarityScore) }}</strong>
-              <span>{{ source.documentTitle }} v{{ source.version }} / chunk {{ source.chunkIndex }}</span>
+              <span>{{ source.documentTitle }} v{{ source.version }} / {{ source.parentSectionTitle }} / chunk {{ source.chunkIndex }}</span>
             </header>
             <p>{{ source.excerpt }}</p>
           </article>
@@ -313,11 +329,12 @@
         <article>
           <header>
             <strong>{{ source.usedInContext ? 'USED' : source.discardReason }}</strong>
-            <span>{{ source.documentTitle }} v{{ source.versionNumber }} / chunk {{ source.chunkIndex }}</span>
+            <span>{{ source.documentTitle }} v{{ source.versionNumber }} / {{ source.parentSectionTitle ?? 'Section n/a' }} / chunk {{ source.chunkIndex }}</span>
           </header>
           <div class="retrieval-meta">
             <span>rank {{ source.sourceRank }}</span>
             <span>context {{ source.contextRank ?? 'n/a' }}</span>
+            <span>parent {{ source.parentSectionId ?? 'n/a' }}</span>
             <span>combined {{ similarityPercent(source.combinedScore) }}</span>
             <span>vector {{ similarityPercent(source.similarityScore) }}</span>
             <span>{{ source.retrievalStrategy }}</span>
@@ -335,6 +352,9 @@
       <p class="eyebrow">Evaluation starter</p>
       <h2>Golden questions</h2>
     </div>
+    <button class="secondary" type="button" (click)="runGoldenQuestions()" [disabled]="evaluating()">
+      {{ evaluating() ? 'Running...' : 'Run evaluation' }}
+    </button>
   </div>
   <div class="trace-list">
     @for (question of goldenQuestions(); track question.id) {
@@ -352,6 +372,24 @@
       </article>
     }
   </div>
+
+  @if (goldenQuestionResults().length > 0) {
+    <div class="trace-list">
+      @for (result of goldenQuestionResults(); track result.id) {
+        <article>
+          <header>
+            <strong>{{ result.expectedSourceMatched ? 'PASS' : 'REVIEW' }} - {{ result.question }}</strong>
+            <button class="secondary" type="button" (click)="loadTraceDetail(result.traceId)">Open trace</button>
+          </header>
+          <div class="retrieval-meta">
+            <span>{{ result.usedChunks }} chunks used</span>
+            <span>{{ result.qualityLabel }} {{ similarityPercent(result.qualityProbability) }}</span>
+            <span>matched: {{ result.matchedHints.length === 0 ? 'none' : result.matchedHints.join(', ') }}</span>
+          </div>
+        </article>
+      }
+    </div>
+  }
 </section>
 
 <section class="panel chunks">

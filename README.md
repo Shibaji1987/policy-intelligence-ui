@@ -58,10 +58,12 @@ explaining how RAG systems work beyond a chat box.
 - chunk inspection
 - vector search UI
 - advisor interaction UI
+- live advisor execution trace using Server-Sent Events
 - hybrid score display, including vector, keyword, and combined scores
 - retrieval trace detail for retrieved, used, and discarded chunks
+- parent section labels for expanded retrieval context
 - feedback buttons for good/bad retrieval labels
-- golden-question starter panel for evaluation walkthroughs
+- golden-question panel and evaluation runner
 - Nginx-based production container
 - API proxying from `/api` to the backend container
 
@@ -76,8 +78,10 @@ explaining how RAG systems work beyond a chat box.
 6. Run vector search
 7. Ask the advisor a policy question
 8. Review answer, sources, retrieval quality, and verification status
-9. Inspect trace detail to see retrieved, used, and discarded chunks
-10. Submit good/bad feedback for future model training
+9. Watch the live execution trace while the advisor runs
+10. Inspect trace detail to see retrieved, used, and discarded chunks
+11. Submit good/bad feedback for future model training
+12. Run golden-question evaluation after ingesting a corpus
 ```
 
 Suggested test question:

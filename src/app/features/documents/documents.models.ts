@@ -66,6 +66,8 @@ export interface RetrievedChunk {
   version: number;
   chunkId: string;
   chunkIndex: number;
+  parentSectionId: string;
+  parentSectionTitle: string;
   chunkText: string;
   similarityScore: number;
   keywordScore: number;
@@ -151,6 +153,8 @@ export interface RetrievalTraceSourceSummary {
   versionNumber: number;
   chunkId: string;
   chunkIndex: number;
+  parentSectionId: string | null;
+  parentSectionTitle: string | null;
   similarityScore: number;
   excerpt: string;
   usedInContext: boolean;
@@ -174,3 +178,25 @@ export interface GoldenQuestion {
   expectedSourceHints: string[];
   expectedAnswerHint: string;
 }
+
+export interface GoldenQuestionResult {
+  id: string;
+  question: string;
+  traceId: string;
+  expectedSourceMatched: boolean;
+  matchedHints: string[];
+  usedChunks: number;
+  qualityLabel: string;
+  qualityProbability: number;
+}
+
+export interface AdvisorEvent {
+  stage: string;
+  message: string;
+  occurredAt: string;
+  details: Record<string, unknown>;
+}
+
+export type AdvisorStreamMessage =
+  | { type: 'event'; event: AdvisorEvent }
+  | { type: 'answer'; answer: AdvisorAnswer };

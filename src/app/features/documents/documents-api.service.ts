@@ -9,7 +9,10 @@ import {
   DocumentVersion,
   IngestionResult,
   AdvisorAnswer,
+  AdvisorEvent,
+  AdvisorStreamMessage,
   GoldenQuestion,
+  GoldenQuestionResult,
   RetrievalSearchResponse,
   RetrievalTraceDetail,
   RetrievalTraceSummary,
@@ -64,6 +67,42 @@ export class DocumentsApiService {
     return this.http.post<AdvisorAnswer>(this.advisorEndpoint, { question });
   }
 
+  streamAdvisor(question: string): Observable<AdvisorStreamMessage> {
+    return new Observable<AdvisorStreamMessage>((subscriber) => {
+      const params = new URLSearchParams({ question });
+      const source = new EventSource(`${this.advisorEndpoint}/stream?${params.toString()}`);
+      const stages = [
+        'QUESTION_RECEIVED',
+        'QUERY_REFINED',
+        'VECTOR_SEARCH_STARTED',
+        'CHUNKS_RETRIEVED',
+        'CONTEXT_FILTERING_STARTED',
+        'CONTEXT_BUILT',
+        'LLM_STARTED',
+        'ANSWER_VERIFIED',
+        'SOURCE_ATTRIBUTION_CREATED',
+        'ANSWER_COMPLETED',
+        'ANSWER_FAILED'
+      ];
+
+      for (const stage of stages) {
+        source.addEventListener(stage, (message) => {
+          subscriber.next({ type: 'event', event: JSON.parse((message as MessageEvent).data) as AdvisorEvent });
+        });
+      }
+      source.addEventListener('ANSWER', (message) => {
+        subscriber.next({ type: 'answer', answer: JSON.parse((message as MessageEvent).data) as AdvisorAnswer });
+        subscriber.complete();
+        source.close();
+      });
+      source.onerror = (error) => {
+        subscriber.error(error);
+        source.close();
+      };
+      return () => source.close();
+    });
+  }
+
   getTraces(limit = 10): Observable<RetrievalTraceSummary[]> {
     return this.http.get<RetrievalTraceSummary[]>(this.tracesEndpoint, {
       params: new HttpParams().set('limit', limit)
@@ -80,5 +119,9 @@ export class DocumentsApiService {
 
   getGoldenQuestions(): Observable<GoldenQuestion[]> {
     return this.http.get<GoldenQuestion[]>(`${this.evaluationsEndpoint}/golden-questions`);
+  }
+
+  runGoldenQuestions(): Observable<GoldenQuestionResult[]> {
+    return this.http.post<GoldenQuestionResult[]>(`${this.evaluationsEndpoint}/run-golden-questions`, {});
   }
 }
