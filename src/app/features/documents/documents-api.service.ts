@@ -7,12 +7,12 @@ import {
   DocumentChunk,
   DocumentSummary,
   DocumentVersion,
+  EvaluationRun,
   IngestionResult,
   AdvisorAnswer,
   AdvisorEvent,
   AdvisorStreamMessage,
   GoldenQuestion,
-  GoldenQuestionResult,
   RetrievalSearchResponse,
   RetrievalTraceDetail,
   RetrievalTraceSummary,
@@ -121,7 +121,7 @@ export class DocumentsApiService {
     return this.http.get<GoldenQuestion[]>(`${this.evaluationsEndpoint}/golden-questions`);
   }
 
-  runGoldenQuestions(): Observable<GoldenQuestionResult[]> {
-    return this.http.post<GoldenQuestionResult[]>(`${this.evaluationsEndpoint}/run-golden-questions`, {});
+  runGoldenQuestions(): Observable<EvaluationRun> {
+    return this.http.post<EvaluationRun>(`${this.evaluationsEndpoint}/run-golden-questions`, {});
   }
 }

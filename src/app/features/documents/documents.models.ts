@@ -177,17 +177,30 @@ export interface GoldenQuestion {
   question: string;
   expectedSourceHints: string[];
   expectedAnswerHint: string;
+  expectedChunkIds: string[];
+  expectedAnswerKeywords: string[];
+  expectedDocumentIds: string[];
 }
 
-export interface GoldenQuestionResult {
-  id: string;
-  question: string;
+export interface EvaluationResult {
+  questionId: string;
   traceId: string;
-  expectedSourceMatched: boolean;
-  matchedHints: string[];
-  usedChunks: number;
-  qualityLabel: string;
-  qualityProbability: number;
+  recallAt5: number;
+  recallAt10: number;
+  mrr: number;
+  precisionAt5: number;
+  citationAccuracy: number;
+  answerGroundedness: number;
+  faithfulness: number;
+  latencyMs: number;
+  tokenCount: number;
+}
+
+export interface EvaluationRun {
+  runId: string;
+  results: EvaluationResult[];
+  averageLatencyMs: number;
+  averageTokenCount: number;
 }
 
 export interface AdvisorEvent {

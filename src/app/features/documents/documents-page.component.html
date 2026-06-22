@@ -373,18 +373,27 @@
     }
   </div>
 
-  @if (goldenQuestionResults().length > 0) {
+  @if (evaluationRun(); as run) {
     <div class="trace-list">
-      @for (result of goldenQuestionResults(); track result.id) {
+      <article>
+        <header>
+          <strong>Evaluation run {{ run.runId }}</strong>
+          <span>{{ run.averageLatencyMs | number: '1.0-0' }} ms avg / {{ run.averageTokenCount | number: '1.0-0' }} tokens avg</span>
+        </header>
+      </article>
+      @for (result of run.results; track result.questionId) {
         <article>
           <header>
-            <strong>{{ result.expectedSourceMatched ? 'PASS' : 'REVIEW' }} - {{ result.question }}</strong>
+            <strong>{{ result.questionId }}</strong>
             <button class="secondary" type="button" (click)="loadTraceDetail(result.traceId)">Open trace</button>
           </header>
           <div class="retrieval-meta">
-            <span>{{ result.usedChunks }} chunks used</span>
-            <span>{{ result.qualityLabel }} {{ similarityPercent(result.qualityProbability) }}</span>
-            <span>matched: {{ result.matchedHints.length === 0 ? 'none' : result.matchedHints.join(', ') }}</span>
+            <span>Recall@5 {{ similarityPercent(result.recallAt5) }}</span>
+            <span>Recall@10 {{ similarityPercent(result.recallAt10) }}</span>
+            <span>MRR {{ result.mrr | number: '1.2-3' }}</span>
+            <span>Precision@5 {{ similarityPercent(result.precisionAt5) }}</span>
+            <span>Grounded {{ similarityPercent(result.answerGroundedness) }}</span>
+            <span>Faithful {{ similarityPercent(result.faithfulness) }}</span>
           </div>
         </article>
       }

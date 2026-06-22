@@ -18,9 +18,9 @@ import {
   DocumentChunk,
   DocumentSummary,
   DocumentVersion,
+  EvaluationRun,
   AdvisorAnswer,
   GoldenQuestion,
-  GoldenQuestionResult,
   RetrievalTraceDetail,
   RetrievalTraceSummary,
   RetrievalSearchResponse
@@ -54,7 +54,7 @@ export class DocumentsPageComponent implements OnInit {
   readonly traces = signal<RetrievalTraceSummary[]>([]);
   readonly selectedTrace = signal<RetrievalTraceDetail | null>(null);
   readonly goldenQuestions = signal<GoldenQuestion[]>([]);
-  readonly goldenQuestionResults = signal<GoldenQuestionResult[]>([]);
+  readonly evaluationRun = signal<EvaluationRun | null>(null);
   readonly advisorEvents = signal<AdvisorEvent[]>([]);
 
   readonly totalChunks = computed(() => this.chunks().length);
@@ -294,8 +294,8 @@ export class DocumentsPageComponent implements OnInit {
       .runGoldenQuestions()
       .pipe(finalize(() => this.evaluating.set(false)))
       .subscribe({
-        next: (results) => {
-          this.goldenQuestionResults.set(results);
+        next: (run) => {
+          this.evaluationRun.set(run);
           this.loadTraces();
         },
         error: (error: ApiError) => this.error.set(error.message)
