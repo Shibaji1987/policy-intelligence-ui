@@ -182,6 +182,40 @@
       <span>corpus {{ result.corpusVersion }}</span>
       <span>{{ result.cacheHit ? 'cache hit' : 'fresh search' }}</span>
     </div>
+    <div class="token-usage" aria-label="Search token usage">
+      <article>
+        <span>Total estimate</span>
+        <strong>{{ result.tokenUsage.totalEstimatedTokens }}</strong>
+      </article>
+      <article>
+        <span>Query</span>
+        <strong>{{ result.tokenUsage.queryTokens }}</strong>
+      </article>
+      <article>
+        <span>Returned chunks</span>
+        <strong>{{ result.tokenUsage.returnedChunkTokens }}</strong>
+      </article>
+      <article>
+        <span>Excerpts</span>
+        <strong>{{ result.tokenUsage.returnedExcerptTokens }}</strong>
+      </article>
+    </div>
+    <div class="retrieval-meta">
+      <span>{{ result.tokenUsage.tokenizationStrategy }}</span>
+      <span>{{ result.tokenUsage.billingEstimate.strategy }}</span>
+      <span>
+        {{ result.tokenUsage.billingEstimate.totalCost | currency: result.tokenUsage.billingEstimate.currency : 'symbol' : '1.6-8' }}
+        estimated
+      </span>
+      <span>
+        {{ result.tokenUsage.billingEstimate.billableInputTokens }} input /
+        {{ result.tokenUsage.billingEstimate.billableOutputTokens }} output billable tokens
+      </span>
+      <span>
+        rates {{ result.tokenUsage.billingEstimate.inputRatePerMillionTokens | currency: result.tokenUsage.billingEstimate.currency : 'symbol' : '1.2-4' }}/M in,
+        {{ result.tokenUsage.billingEstimate.outputRatePerMillionTokens | currency: result.tokenUsage.billingEstimate.currency : 'symbol' : '1.2-4' }}/M out
+      </span>
+    </div>
 
     <div class="retrieval-list">
       @for (chunk of result.chunks; track chunk.chunkId) {

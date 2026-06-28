@@ -84,7 +84,29 @@ export interface RetrievalSearchResponse {
   embeddingDimension: number;
   corpusVersion: number;
   cacheHit: boolean;
+  tokenUsage: RetrievalTokenUsage;
   chunks: RetrievedChunk[];
+}
+
+export interface RetrievalTokenUsage {
+  queryTokens: number;
+  returnedChunkTokens: number;
+  returnedExcerptTokens: number;
+  totalEstimatedTokens: number;
+  tokenizationStrategy: string;
+  billingEstimate: BillingEstimate;
+}
+
+export interface BillingEstimate {
+  strategy: string;
+  currency: string;
+  billableInputTokens: number;
+  billableOutputTokens: number;
+  inputCost: number;
+  outputCost: number;
+  totalCost: number;
+  inputRatePerMillionTokens: number;
+  outputRatePerMillionTokens: number;
 }
 
 export interface ContextMetrics {

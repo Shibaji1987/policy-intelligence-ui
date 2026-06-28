@@ -307,6 +307,35 @@ select {
   margin-top: 1rem;
 }
 
+.token-usage {
+  display: grid;
+  gap: 1px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin-top: 1rem;
+  overflow: hidden;
+
+  article {
+    background: rgb(5 15 25 / 55%);
+    border: 1px solid var(--border);
+    padding: 0.9rem;
+  }
+
+  span,
+  strong {
+    display: block;
+  }
+
+  span {
+    color: var(--muted);
+    font-size: 0.72rem;
+  }
+
+  strong {
+    font-size: 1.35rem;
+    margin-top: 0.25rem;
+  }
+}
+
 .retrieval-list {
   display: grid;
   gap: 0.8rem;
@@ -405,6 +434,7 @@ select {
 
   .form-grid,
   .metrics,
+  .token-usage,
   .search-form,
   .advisor-form {
     grid-template-columns: 1fr;

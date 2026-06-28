@@ -1,4 +1,4 @@
-import { DatePipe, DecimalPipe } from '@angular/common';
+import { CurrencyPipe, DatePipe, DecimalPipe } from '@angular/common';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -28,7 +28,7 @@ import {
 
 @Component({
   selector: 'app-documents-page',
-  imports: [DatePipe, DecimalPipe, ReactiveFormsModule],
+  imports: [CurrencyPipe, DatePipe, DecimalPipe, ReactiveFormsModule],
   templateUrl: './documents-page.component.html',
   styleUrl: './documents-page.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush
