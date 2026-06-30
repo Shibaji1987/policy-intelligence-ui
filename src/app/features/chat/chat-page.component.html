@@ -1,0 +1,232 @@
+<section class="assistant-shell">
+  <aside class="conversation-rail" aria-label="Conversation history">
+    <div class="rail-brand">
+      <span class="rail-logo"><span>PI</span></span>
+      <span>
+        <strong>Policy Intelligence</strong>
+        <small>Policy Assistant</small>
+      </span>
+    </div>
+
+    <button class="new-chat" type="button" (click)="newChat()" [disabled]="asking()">
+      <span aria-hidden="true">+</span>
+      New Chat
+    </button>
+
+    <div class="conversation-list">
+      <span class="rail-label">Conversations</span>
+      @if (conversationThreads().length > 0) {
+        @for (thread of conversationThreads(); track trackThread($index, thread)) {
+          <button
+            type="button"
+            [class.active]="thread.id === activeThreadId()"
+            [disabled]="asking()"
+            (click)="selectThread(thread.id)"
+          >
+            <span>{{ thread.title }}</span>
+            <time>{{ thread.updatedAt | date: 'shortTime' }}</time>
+          </button>
+        }
+      } @else {
+        <p class="rail-empty">Questions from this session will appear here.</p>
+      }
+    </div>
+
+    <div class="rail-footer">
+      <div class="user-card">
+        <span class="user-avatar">AS</span>
+        <span>
+          <strong>Arjun Sharma</strong>
+          <small>HR Department</small>
+        </span>
+      </div>
+      <a routerLink="/admin">Admin console</a>
+      <small>Version 1.0.0</small>
+    </div>
+  </aside>
+
+  <section class="chat-workspace">
+    <header class="chat-header">
+      <div class="header-title">
+        <h1>Policy Assistant</h1>
+        <span class="rag-badge"><span aria-hidden="true"></span>Enterprise RAG Powered</span>
+      </div>
+      <div class="header-actions">
+        <button type="button">Feedback</button>
+        <button class="danger" type="button" (click)="clearChat()" [disabled]="asking()">Clear Chat</button>
+        <a routerLink="/admin">Admin</a>
+      </div>
+    </header>
+
+    <main class="chat-main">
+      <section class="chat-panel" aria-label="Policy chat">
+        <div class="mode-bar" aria-label="Assistant mode">
+          @for (mode of modes; track mode.id) {
+            <button type="button" [class.active]="activeMode() === mode.id" (click)="setMode(mode.id)">
+              {{ mode.label }}
+            </button>
+          }
+        </div>
+
+        <div #messageLog class="message-log">
+          @for (message of messages(); track trackMessage($index, message)) {
+            <article class="message" [class.user]="message.role === 'user'" [class.failed]="message.failed">
+              <div class="message-heading">
+                <span class="avatar">{{ message.role === 'user' ? 'You' : 'PI' }}</span>
+                <div>
+                  <strong>{{ message.role === 'user' ? 'You' : 'Policy Intelligence' }}</strong>
+                  <time>{{ message.createdAt | date: 'shortTime' }}</time>
+                </div>
+              </div>
+
+              <div class="bubble">
+                <p>{{ message.text }}</p>
+
+                @if (message.answer) {
+                  <section class="trust-card" [class.warning]="message.answer.sources.length === 0">
+                    <div>
+                      <strong>{{ trustLabel(message.answer) }}</strong>
+                      <span>{{ trustDetail(message.answer) }}</span>
+                    </div>
+                    <span>{{ message.answer.qualityPrediction.label }}</span>
+                  </section>
+
+                  <div class="source-card">
+                    <header>
+                      <strong>Sources ({{ message.answer.sources.length }})</strong>
+                    </header>
+                    @for (source of message.answer.sources.slice(0, 4); track source.chunkId) {
+                      <details>
+                        <summary>
+                          <span>
+                            <i aria-hidden="true"></i>
+                            <span>
+                              <strong>{{ source.documentTitle }}</strong>
+                              <small>Knowledge base</small>
+                            </span>
+                          </span>
+                          <em>Chunk {{ source.chunkIndex + 1 }}</em>
+                        </summary>
+                        <p>{{ source.excerpt || source.chunkText }}</p>
+                      </details>
+                    }
+                  </div>
+
+                  <div class="answer-footer">
+                    <span class="verified">Verified</span>
+                    <span>Confidence: {{ message.answer.qualityPrediction.label }}</span>
+                    <span>Trace ID: {{ message.answer.traceId }}</span>
+                    <button type="button" (click)="submitAnswerFeedback(message.answer, 'THUMBS_UP')">Helpful</button>
+                    <button type="button" (click)="submitAnswerFeedback(message.answer, 'THUMBS_DOWN')">Needs review</button>
+                    <button type="button" (click)="printPdf(message)">Save PDF</button>
+                    <button type="button" (click)="downloadMarkdown(message)">Markdown</button>
+                    <button type="button" (click)="downloadJson(message)">JSON</button>
+                    @if (feedbackStatus()[message.answer.traceId]) {
+                      <span>{{ feedbackStatus()[message.answer.traceId] }}</span>
+                    }
+                  </div>
+                }
+              </div>
+            </article>
+          }
+
+          @if (asking()) {
+            <article class="message thinking">
+              <div class="message-heading">
+                <span class="avatar">PI</span>
+                <div>
+                  <strong>Policy Intelligence</strong>
+                  <time>Working</time>
+                </div>
+              </div>
+              <div class="bubble">
+                <p>Searching policies, fusing results, and checking source grounding...</p>
+              </div>
+            </article>
+          }
+        </div>
+
+        <div class="quick-prompts" aria-label="Suggested questions">
+          @for (suggestion of suggestions; track suggestion) {
+            <button type="button" (click)="useSuggestion(suggestion)" [disabled]="asking()">{{ suggestion }}</button>
+          }
+        </div>
+
+        @if (error()) {
+          <p class="error" role="alert">{{ error() }}</p>
+        }
+
+        <form class="composer" (submit)="ask($event)">
+          <label class="sr-only" for="policy-question">Ask a policy question</label>
+          <textarea
+            id="policy-question"
+            [formControl]="question"
+            rows="2"
+            placeholder="Ask about access, approvals, exceptions, evidence, or data handling..."
+            (keydown.enter)="submitOnEnter($event)"
+          ></textarea>
+          <button type="submit" [disabled]="asking() || question.invalid">Send</button>
+        </form>
+        <p class="disclaimer">Policy Assistant can make mistakes. Please verify important information.</p>
+      </section>
+
+      <aside class="inspector" aria-label="Retrieval details">
+        <section class="inspector-card">
+          <header>
+            <h2>Retrieval Details</h2>
+            <span>{{ activeEvents().length > 0 ? 'Running' : 'Live' }}</span>
+          </header>
+          <div class="status-list">
+            @if (activeEvents().length > 0) {
+              @for (event of activeEvents().slice(-5); track event.occurredAt + event.stage) {
+                <div>
+                  <span>{{ event.message }}</span>
+                  <strong>Active</strong>
+                </div>
+              }
+            } @else {
+              <div><span>Hybrid Search</span><strong>Completed</strong></div>
+              <div><span>RRF Fusion</span><strong>Completed</strong></div>
+              <div><span>Reranking</span><strong>Completed</strong></div>
+              <div><span>Verification</span><strong>Passed</strong></div>
+            }
+          </div>
+        </section>
+
+        <section class="inspector-card">
+          <header>
+            <h2>Top Retrieved Chunks</h2>
+          </header>
+          @if (latestAnswer(); as answer) {
+            <div class="chunk-list">
+              @for (source of answer.sources.slice(0, 4); track source.chunkId) {
+                <article>
+                  <strong>{{ source.documentTitle }}</strong>
+                  <span>Chunk {{ source.chunkIndex + 1 }} | Score {{ source.combinedScore | number: '1.2-2' }}</span>
+                </article>
+              }
+            </div>
+          } @else {
+            <p class="empty">Sources appear after the first answer.</p>
+          }
+        </section>
+
+        <section class="inspector-card">
+          <header>
+            <h2>Query Information</h2>
+          </header>
+          <dl>
+            <dt>Original query</dt>
+            <dd>{{ latestUserQuestion() }}</dd>
+            <dt>Rewritten query</dt>
+            <dd>{{ latestAnswer()?.refinedQuery || 'Waiting for query' }}</dd>
+            <dt>Used chunks</dt>
+            <dd>{{ latestAnswer()?.contextMetrics?.usedChunks ?? 0 }}</dd>
+            <dt>Estimated tokens</dt>
+            <dd>{{ latestAnswer()?.contextMetrics?.estimatedTokens ?? 0 }}</dd>
+          </dl>
+        </section>
+      </aside>
+    </main>
+  </section>
+</section>

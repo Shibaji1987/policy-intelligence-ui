@@ -1,11 +1,15 @@
-<header class="topbar">
-  <a class="brand" href="/" aria-label="Policy Intelligence home">
+<header class="topbar" [class.hidden]="isChatRoute()">
+  <a class="brand" routerLink="/" aria-label="Policy Intelligence home">
     <span class="brand-mark">PI</span>
     <span>
       <strong>Policy Intelligence</strong>
       <small>Enterprise knowledge platform</small>
     </span>
   </a>
+  <nav class="primary-nav" aria-label="Primary navigation">
+    <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">Chat</a>
+    <a routerLink="/admin" routerLinkActive="active">Admin</a>
+  </nav>
   <span class="environment">Local environment</span>
 </header>
 
@@ -13,6 +17,6 @@
   <router-outlet />
 </main>
 
-<footer>
+<footer [class.hidden]="isChatRoute()">
   <span>Explainable retrieval. Versioned knowledge. Auditable answers.</span>
 </footer>

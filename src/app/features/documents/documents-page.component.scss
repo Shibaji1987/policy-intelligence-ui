@@ -1,3 +1,10 @@
+:host {
+  display: block;
+  margin: 0 auto;
+  max-width: 1500px;
+  padding: clamp(1.5rem, 4vw, 4rem);
+}
+
 .hero {
   align-items: end;
   display: flex;
