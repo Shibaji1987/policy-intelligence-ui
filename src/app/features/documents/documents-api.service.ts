@@ -1,17 +1,20 @@
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
+import { map, switchMap } from 'rxjs/operators';
 
 import { API_BASE_URL } from '../../core/config/api.config';
 import {
   DocumentChunk,
   DocumentSummary,
   DocumentVersion,
+  PageResponse,
   EvaluationRun,
   IngestionResult,
   AdvisorAnswer,
   AdvisorEvent,
   AdvisorStreamMessage,
+  AdvisorStreamSession,
   GoldenQuestion,
   RetrievalSearchResponse,
   RetrievalTraceDetail,
@@ -29,7 +32,9 @@ export class DocumentsApiService {
   private readonly evaluationsEndpoint = `${API_BASE_URL}/evaluations`;
 
   getDocuments(): Observable<DocumentSummary[]> {
-    return this.http.get<DocumentSummary[]>(this.endpoint);
+    return this.http
+      .get<PageResponse<DocumentSummary>>(this.endpoint)
+      .pipe(map((response) => response.content));
   }
 
   getVersions(documentId: string): Observable<DocumentVersion[]> {
@@ -68,9 +73,9 @@ export class DocumentsApiService {
   }
 
   streamAdvisor(question: string): Observable<AdvisorStreamMessage> {
-    return new Observable<AdvisorStreamMessage>((subscriber) => {
-      const params = new URLSearchParams({ question });
-      const source = new EventSource(`${this.advisorEndpoint}/stream?${params.toString()}`);
+    return this.http.post<AdvisorStreamSession>(`${this.advisorEndpoint}/stream`, { question }).pipe(
+      switchMap((session) => new Observable<AdvisorStreamMessage>((subscriber) => {
+      const source = new EventSource(`${this.advisorEndpoint}/stream/${session.streamId}`);
       const stages = [
         'QUESTION_RECEIVED',
         'QUERY_REFINED',
@@ -100,7 +105,8 @@ export class DocumentsApiService {
         source.close();
       };
       return () => source.close();
-    });
+    }))
+    );
   }
 
   getTraces(limit = 10): Observable<RetrievalTraceSummary[]> {

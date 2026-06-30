@@ -65,6 +65,26 @@ export class DocumentsPageComponent implements OnInit {
   readonly completedEmbeddings = computed(
     () => this.chunks().filter((chunk) => chunk.embeddingStatus === 'COMPLETED').length
   );
+  readonly traceHealth = computed(() => {
+    const traces = this.traces();
+    const ragTraces = traces.filter((trace) => trace.retrievalStrategy !== 'NO_RETRIEVAL');
+    const noAnswerCount = traces.filter((trace) => trace.retrievalStrategy === 'NO_RETRIEVAL' || trace.usedChunks === 0).length;
+    const badRetrievalCount = traces.filter((trace) =>
+      ['BAD_RETRIEVAL', 'OUT_OF_SCOPE_QUERY', 'CLARIFICATION_NEEDS_POLICY_TOPIC'].includes(trace.mlLabel ?? '')
+    ).length;
+    const averageLatency = ragTraces.length === 0
+      ? 0
+      : Math.round(ragTraces.reduce((sum, trace) => sum + trace.totalLatencyMs, 0) / ragTraces.length);
+    const maxLatency = ragTraces.reduce((max, trace) => Math.max(max, trace.totalLatencyMs), 0);
+    return {
+      total: traces.length,
+      rag: ragTraces.length,
+      noAnswerCount,
+      badRetrievalCount,
+      averageLatency,
+      maxLatency
+    };
+  });
 
   readonly uploadForm = new FormGroup({
     title: new FormControl('', {
@@ -171,7 +191,7 @@ export class DocumentsPageComponent implements OnInit {
     }
 
     const value = this.uploadForm.getRawValue();
-    if (value.strategy === 'SLIDING_WINDOW' && value.overlap >= value.chunkSize) {
+    if (value.strategy !== 'FIXED_SIZE' && value.overlap >= value.chunkSize) {
       this.error.set('Overlap must be smaller than chunk size.');
       return;
     }

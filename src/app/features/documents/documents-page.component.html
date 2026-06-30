@@ -29,6 +29,15 @@
   <article><span>Embeddings ready</span><strong>{{ completedEmbeddings() }}</strong></article>
 </section>
 
+<section class="metrics product-metrics" aria-label="Policy intelligence health">
+  <article><span>Recent questions</span><strong>{{ traceHealth().total }}</strong></article>
+  <article><span>RAG answers</span><strong>{{ traceHealth().rag }}</strong></article>
+  <article><span>No-answer/routed</span><strong>{{ traceHealth().noAnswerCount }}</strong></article>
+  <article><span>Bad retrieval signals</span><strong>{{ traceHealth().badRetrievalCount }}</strong></article>
+  <article><span>Avg latency</span><strong>{{ traceHealth().averageLatency }} ms</strong></article>
+  <article><span>Max latency</span><strong>{{ traceHealth().maxLatency }} ms</strong></article>
+</section>
+
 <div class="workspace">
   <section class="panel upload-panel">
     <div class="panel-heading">
@@ -82,6 +91,7 @@
           Chunking strategy
           <select formControlName="strategy">
             <option value="SLIDING_WINDOW">Sliding window</option>
+            <option value="SENTENCE_AWARE">Sentence aware</option>
             <option value="FIXED_SIZE">Fixed size</option>
           </select>
         </label>

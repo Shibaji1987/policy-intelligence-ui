@@ -1,4 +1,4 @@
-export type ChunkingStrategy = 'FIXED_SIZE' | 'SLIDING_WINDOW';
+export type ChunkingStrategy = 'FIXED_SIZE' | 'SLIDING_WINDOW' | 'SENTENCE_AWARE';
 export type EmbeddingStatus = 'PENDING' | 'COMPLETED' | 'FAILED';
 
 export interface DocumentSummary {
@@ -11,6 +11,14 @@ export interface DocumentSummary {
   classification: string | null;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface PageResponse<T> {
+  content: T[];
+  totalElements: number;
+  totalPages: number;
+  number: number;
+  size: number;
 }
 
 export interface DocumentVersion {
@@ -136,6 +144,10 @@ export interface AdvisorAnswer {
   contextMetrics: ContextMetrics;
   qualityPrediction: RetrievalQualityPrediction;
   sources: RetrievedChunk[];
+}
+
+export interface AdvisorStreamSession {
+  streamId: string;
 }
 
 export interface RetrievalTraceSummary {
